@@ -1,4 +1,4 @@
-# Predicting-Player's-Ratings
+# Predicting Player Ratings Using Regression in Python
 
 ---
 
@@ -6,11 +6,7 @@ In this project, we are going to predict the overall rating of soccer player bas
 
 The dataset that we are going to use is from the European Soccer Database (https://www.kaggle.com/hugomathien/soccer). 
 
-We will be building two different models using [Linear](https://class.coursera.org/ml-005/lecture/preview) and [Random Forest](https://en.wikipedia.org/wiki/Random_forest) regression techniques, and evalaute those models to judge their accuracy and efficiency.
-
-Linear regression is a popular technique in machine learning. There are several ways in which we can can do linear regression, using numpy, scipy, stats model and scikit-learn. In this project, I am going to use scikit-learn to perform linear regression.
-
-[Scikit-learn](http://scikit-learn.org/stable/) is a powerful Python module for machine learning. It contains function for regression, classification, clustering, model selection and dimensionality reduction. I will explore [sklearn.linear_model](http://scikitlearn.org/stable/modules/linear_model.html) which contains “methods intended for regression in which the target value is expected to be a linear combination of the input variables”.
+I am going to use the [Scikit-learn](http://scikit-learn.org/stable/) ML library in Python to perform regression.
 
 ---
 
@@ -23,8 +19,6 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import GridSearchCV
 from sklearn import metrics
 from matplotlib import pyplot as plt
 # allow plots to appear directly in the notebook
@@ -41,19 +35,13 @@ df.head()
 
 ![dataframe](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/dataframe.png?raw=true)
 
-### Data exploration
-
-```python
-df.describe()       
-```
-
-![dataframe](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/df-describe.png?raw=true)
-
-We can see that all attributes are in the range of 1 to 100.
-
 ### Data clean up
 
 ```python
+# Drop the columns that we won't be needing for our analysis.
+df.drop(['id', 'player_fifa_api_id', 'player_api_id', 'date'], axis=1, inplace=True)
+
+#Check for null values
 df.isnull().any()
 ```
 
@@ -126,31 +114,43 @@ df['attacking_work_rate'] = df['attacking_work_rate'].str.replace('norm','medium
 df = df[(df.attacking_work_rate == 'medium') | (df.attacking_work_rate == 'high') | (df.attacking_work_rate == 'low')]
 ```
 
-### Data Pre-processing 
-
-For features to be utilzed in a regression model, the catergorical ones have to be numerically encoded. We can use pandas.get_dummies method to accomplish that. Most machine learning algorithms also like the features to be scaled with mean 0 and variance 1. This is called normalization which means “removing the mean and scaling to unit variance”. Also, let's drop the columns we won't be needing in our analysis.
+Since we know the particular order of values in the "attacking_work_rate" & "defensive_work_rate" features, we can numerically encode them as 0 for "low", 1 for "medium" and 2 for "high".
 
 ```python
-# drop the columns
-df.drop(['id', 'player_fifa_api_id', 'player_api_id', 'date'], axis=1, inplace=True)
-
-# category columns
-df_category = df[['attacking_work_rate','defensive_work_rate', 'preferred_foot']]
-
-# numeric columns
-df_numeric = df[np.setdiff1d(df.columns.tolist(), df_category.columns.tolist())]
-
-# dummified category columns
-df_category_dummified = pd.get_dummies(df_category, columns=['attacking_work_rate','defensive_work_rate', 'preferred_foot'])
-
-# normalize
-cols_to_norm = df_numeric.columns.tolist()
-
-df_numeric[cols_to_norm] = df_numeric[cols_to_norm].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
-
-# modified dataframe
-df_modified = pd.concat([df_category_dummified, df_numeric], axis=1) 
+df['attacking_work_rate'] = df['attacking_work_rate'].map({'low': 0, 'medium': 1, 'high': 2}).astype(int)
+df['defensive_work_rate'] = df['defensive_work_rate'].map({'low': 0, 'medium': 1, 'high': 2}).astype(int)
+df['preferred_foot'] = df['preferred_foot'].map({'left': 0, 'right': 1}).astype(int)
 ```
+
+### Data Exploration
+
+Check correlation between the features and the target column.
+
+```python
+from math import ceil
+
+fig = plt.figure(figsize=(30,20))
+cols = 5
+rows = ceil(float(df.shape[1]) / cols)
+for i, column in enumerate(df.columns):
+    axs = fig.add_subplot(rows, cols, i + 1)
+    axs.set_title(column)
+    df.plot(kind='scatter', x=column, y='overall_rating', ax=axs)
+    plt.xticks(rotation="vertical")
+plt.subplots_adjust(hspace=0.9, wspace=0.3)
+```
+
+![features-target-correlation](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/features-target-correlation.png?raw=true)
+
+The "overall rating" feature doesn't seem to be linearlly correlated to all the other features except for a few like "potential". Running a linear regression model on non-linear data wouldn't give us the best results. We will test this. Let's see how the features are correlated to each other.
+
+```python
+fig = plt.figure(figsize=(12,9))
+sns.heatmap(df.corr(), square=True)
+plt.show()
+```
+
+![features-target-correlation](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/features-correlation-heatmap.png?raw=true)
 
 ### Build the model
 
@@ -171,43 +171,95 @@ X = df_modified[['potential', 'preferred_foot_left', 'preferred_foot_right', 'cr
 y = df_modified["overall_rating"]
 ```
 
-### Linear Regression
+There is a strong correlation between various features which means we also have a problem of data redundancy.
+
+We can remove highly correlated predictors from the model using Random Forest regression technique. Because they supply redundant information, removing one of the correlated factors usually doesn't drastically reduce the R-squared.
+
+Based on initial data analysis, random forest regression seems a better technique that linear regression in this case. Let's evaluate both of them.
+
+### Build the model
+
+The columns that we will be making predictions with.
 
 ```python
-#Evaluate the model by splitting into train and test sets.
+X = df[['potential', 'preferred_foot', 'crossing', 'finishing',
+       'heading_accuracy', 'short_passing', 'volleys', 'dribbling', 'curve',
+       'free_kick_accuracy', 'long_passing', 'ball_control', 'acceleration',
+       'sprint_speed', 'agility', 'reactions', 'balance', 'shot_power',
+       'jumping', 'stamina', 'strength', 'long_shots', 'aggression',
+       'interceptions', 'positioning', 'vision', 'penalties', 'marking',
+       'standing_tackle', 'sliding_tackle',
+       'attacking_work_rate', 'defensive_work_rate']]
+```
+
+The column that we want to predict.
+
+```python
+y = df["overall_rating"]       
+```
+
+### Linear Regression
+
+Evaluate the model by splitting into train and test sets.
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+lm = LinearRegression()
+lm.fit(X_train, y_train)
+
+predicted = lm.predict(X_test)
+print ("Test Accuracy:", round(metrics.r2_score(y_test, predicted) * 100, 2), '%')
+print ("Mean Squared Error:", round(metrics.mean_squared_error(y_test, predicted),5))
+```
+
+Test Accuracy: 79.2 %
+
+Mean Squared Error: 10.33402
+
+Mean squared error seems high. Most machine learning algorithms like the features to be scaled with mean 0 and variance 1. This is called normalization which means “removing the mean and scaling to unit variance”. Lets try that and run our model again.
+
+```python
+from sklearn.preprocessing import StandardScaler
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
 
-model = LinearRegression()
-model.fit(X_train, y_train)
-predicted = model.predict(X_test)
-predicted
+# scale the features
+X_scaler = StandardScaler()
+X_train = pd.DataFrame(X_scaler.fit_transform(X_train), columns=X_train.columns)
+X_test = pd.DataFrame(X_scaler.fit_transform(X_test), columns=X_test.columns)
+
+y_scaler = StandardScaler()
+y_train = y_scaler.fit_transform(y_train[:, None])[:, 0]
+y_test = y_scaler.transform(y_test[:, None])[:, 0]
+
+lm = LinearRegression()
+lm.fit(X_train, y_train)
+
+predicted = lm.predict(X_test)
 print ("Test Accuracy:", round(metrics.r2_score(y_test, predicted) * 100, 2), '%')
-print ("Mean Squared Error:", metrics.mean_squared_error(y_test, predicted))
+print ("Mean Squared Error:", round(metrics.mean_squared_error(y_test, predicted),5))
+
+#Plot the co-efficients
+coefs = pd.Series(lm.coef_[0], index=X_train.columns)
+plt.subplot(2,1,2)
+coefs.plot(kind="bar")
+plt.show()
 ```
 
-Test Accuracy: 79.29 %
+Test Accuracy: 79.2 %
 
-Mean Squared Error: 0.0027657257983778115
+Mean Squared Error: 0.20952
 
-Evaluate the model using 10-fold cross-validation
+![features-target-correlation](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/correlation-plot.png?raw=true)
 
-```python
-scores = cross_val_score(LinearRegression(), X, y, cv=10)
-scores, scores.mean()
-```
-
-(array([0.80033059, 0.7976755 , 0.78623793, 0.78128898, 0.78732932,
-        0.77604425, 0.81277596, 0.78589619, 0.78631669, 0.79532529]),
- 0.7909220676348424)
- 
-Accuracy still at 79%.
+We have brough down the MSE from 10 to 0.2 by scaling the features. All features seem to affect the co-efficient equally.
 
 PLOT true vs predicted scores and draw the line of fit
 
 ```python
-pltplt..scatterscatter((y_testy_test,,  predictedpredicte )
-plt.plot([0, 1], [0, 1], '--k')
+plt.scatter(y_test, predicted)
+plt.plot([-4, 4], [-4, 4], '--k')
 plt.xlabel("True overall score")
 plt.ylabel("Predicted overall score")
 plt.title("True vs Predicted overall score")
@@ -215,17 +267,3 @@ plt.show()
 ```
 
 ![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/true-vs-predicted-scores.png?raw=true)
-
-Draw residual plot. If the data points are scattered randomly around the line, then our model is correct and it's not missing the relationship between any two features.
-
-```python
-plt.figure(figsize=(9,6))
-plt.scatter(model.predict(X_train), model.predict(X_train) - y_train, c='b', s=40, alpha=0.5)
-plt.scatter(model.predict(X_test), model.predict(X_test) - y_test, c='g', s=40, alpha=0.5)
-plt.hlines(y=0, xmin=0, xmax=1)
-plt.ylabel('Residuals')
-plt.title('Residual plot including training(blue) and test(green) data')
-plt.show()
-```
-
-![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/residual%20plot.png?raw=true)
