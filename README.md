@@ -158,31 +158,6 @@ Based on initial data analysis, random forest regression seems a better techniqu
 
 ### Build the model
 
-```python
-#The columns that we will be making predictions with.
-X = df_modified[['potential', 'preferred_foot_left', 'preferred_foot_right', 'crossing', 'finishing',
-       'heading_accuracy', 'short_passing', 'volleys', 'dribbling', 'curve',
-       'free_kick_accuracy', 'long_passing', 'ball_control', 'acceleration',
-       'sprint_speed', 'agility', 'reactions', 'balance', 'shot_power',
-       'jumping', 'stamina', 'strength', 'long_shots', 'aggression',
-       'interceptions', 'positioning', 'vision', 'penalties', 'marking',
-       'standing_tackle', 'sliding_tackle',
-       'attacking_work_rate_high', 'attacking_work_rate_low',
-       'attacking_work_rate_medium', 'defensive_work_rate_high',
-       'defensive_work_rate_low', 'defensive_work_rate_medium']]
-       
-#The column that we want to predict.
-y = df_modified["overall_rating"]
-```
-
-There is a strong correlation between various features which means we also have a problem of data redundancy.
-
-We can remove highly correlated predictors from the model using Random Forest regression technique. Because they supply redundant information, removing one of the correlated factors usually doesn't drastically reduce the R-squared.
-
-Based on initial data analysis, random forest regression seems a better technique that linear regression in this case. Let's evaluate both of them.
-
-### Build the model
-
 The columns that we will be making predictions with.
 
 ```python
