@@ -23,7 +23,7 @@ from matplotlib import pyplot as plt
 %matplotlib inline
 ```
 
-Load the .sqlite file into a pandas data frame.
+Download the .sqlite file from the above said locatin and load it into a pandas data frame.
 
 ```python
 cnx = sqlite3.connect('players-database.sqlite')
