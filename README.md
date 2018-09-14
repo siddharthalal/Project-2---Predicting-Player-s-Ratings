@@ -1,10 +1,16 @@
 # Predicting-Player's-Ratings
 
+---
+
 In this project, we are going to predict the overall rating of soccer player based on their attributes such as 'crossing', 'finishing etc.
 
 The dataset that we are going to use is from the European Soccer Database (https://www.kaggle.com/hugomathien/soccer). 
 
-We will be building two different models using Linear and Random Forest regression techniques, and evalaute those models to judge their accuracy and efficiency.
+We will be building two different models using [Linear](https://class.coursera.org/ml-005/lecture/preview) and [Random Forest](https://en.wikipedia.org/wiki/Random_forest) regression techniques, and evalaute those models to judge their accuracy and efficiency.
+
+Linear regression is a popular technique in machine learning. There are several ways in which we can can do linear regression, using numpy, scipy, stats model and scikit-learn. In this project, I am going to use scikit-learn to perform linear regression.
+
+[Scikit-learn](http://scikit-learn.org/stable/) is a powerful Python module for machine learning. It contains function for regression, classification, clustering, model selection and dimensionality reduction. I will explore [sklearn.linear_model](http://scikitlearn.org/stable/modules/linear_model.html) which contains “methods intended for regression in which the target value is expected to be a linear combination of the input variables”.
 
 ---
 
@@ -20,9 +26,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import GridSearchCV
 from sklearn import metrics
-from math import sqrt
 from matplotlib import pyplot as plt
-import seaborn as sns
 # allow plots to appear directly in the notebook
 %matplotlib inline
 ```
@@ -30,20 +34,37 @@ import seaborn as sns
 Load the .sqlite file into a Pandas data frame.
 
 ```python
-cnxcnx  ==  sqlite3sqlite3.connect('players-database.sqlite')
+cnx = sqlite3.connect('players-database.sqlite')
 df = pd.read_sql_query("SELECT * FROM Player_Attributes", cnx)
 df.head()
 ```
 
 ![dataframe](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/dataframe.png?raw=true)
 
+### Data exploration
+
+```python
+df.describe()       
+```
+
+![dataframe](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/df-describe.png?raw=true)
+
+We can see that all attributes are in the range of 1 to 100.
+
 ### Data clean up
 
 ```python
-# 836 records which have "overall_rating" as null have null values in all the columns. We can safely drop them.
+df.isnull().any()
+```
+
+![dataframe](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/columns-with-nan-values.png?raw=true)
+
+836 records which have "overall_rating" as null have null values in all the columns. We can safely drop them.
+
+```python
 df = df[~df.overall_rating.isnull()]
 
-# replace NANs with series means
+# replace NANs in others with series means
 
 df["volleys"].fillna(df["volleys"].mean(),inplace=True)
 df["curve"].fillna(df["curve"].mean(),inplace=True)
@@ -107,17 +128,28 @@ df = df[(df.attacking_work_rate == 'medium') | (df.attacking_work_rate == 'high'
 
 ### Data Pre-processing 
 
-```python
-#Dummify the categorical features and Normalize the numeric features
+For features to be utilzed in a regression model, the catergorical ones have to be numerically encoded. We can use pandas.get_dummies method to accomplish that. Most machine learning algorithms also like the features to be scaled with mean 0 and variance 1. This is called normalization which means “removing the mean and scaling to unit variance”. Also, let's drop the columns we won't be needing in our analysis.
 
+```python
+# drop the columns
+df.drop(['id', 'player_fifa_api_id', 'player_api_id', 'date'], axis=1, inplace=True)
+
+# category columns
 df_category = df[['attacking_work_rate','defensive_work_rate', 'preferred_foot']]
+
+# numeric columns
 df_numeric = df[np.setdiff1d(df.columns.tolist(), df_category.columns.tolist())]
+
+# dummified category columns
 df_category_dummified = pd.get_dummies(df_category, columns=['attacking_work_rate','defensive_work_rate', 'preferred_foot'])
+
+# normalize
 cols_to_norm = df_numeric.columns.tolist()
+
 df_numeric[cols_to_norm] = df_numeric[cols_to_norm].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
-# Modified data frame
-df_modified = pd.concat([df_category_dummified, df_numeric], axis=1)
+# modified dataframe
+df_modified = pd.concat([df_category_dummified, df_numeric], axis=1) 
 ```
 
 ### Build the model
