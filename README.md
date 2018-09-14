@@ -35,6 +35,8 @@ df = pd.read_sql_query("SELECT * FROM Player_Attributes", cnx)
 df.head()
 ```
 
+![dataframe](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/dataframe.png?raw=true)
+
 ### Data clean up
 
 ```python
@@ -57,26 +59,7 @@ Clean up values in defensive_work_rate and attacking_work_rate columns
 df.defensive_work_rate.value_counts()
 ```
 
-medium    130846
-high       27041
-low        18432
-_0          2394
-o           1550
-1            441
-ormal        348
-2            342
-3            258
-5            234
-7            217
-0            197
-6            197
-9            152
-4            116
-es           106
-ean          104
-tocky         89
-8             78
-Name: defensive_work_rate, dtype: int64
+![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/defensive-work-rate-value-counts-1.png?raw=true)
 
 Converting defensive_work_rate is tricky. The acceptable values are high, medium and low, but the column has lot of other values which don't make sense. And since we don't have the metadata available for the column, the safest choice would be to drop all the rows having non-sensical values. But before we do that, lets try to make sense of the given data.
 
@@ -104,16 +87,15 @@ df = df[(df.defensive_work_rate == 'medium') | (df.defensive_work_rate == 'high'
 df.defensive_work_rate.value_counts()
 ```
 
-medium    131741
-high       27488
-low        23614
-Name: defensive_work_rate, dtype: int64
+![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/defensive-work-rate-value-counts-2.png?raw=true)
 
 attacking_work_rate
 
 ```python
 df.attacking_work_rate.value_counts()
 ```
+
+![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/attacking-work-rate-value-counts.png?raw=true)
 
 Converting attacking_work_rate is again tricky. The acceptable values are high, medium and low, but the column has other values which don't make much sense. And since we don't have the metadata available for this column, the safest choice would be to drop all the rows having values other than low, high and medium.
 
@@ -141,7 +123,6 @@ df_modified = pd.concat([df_category_dummified, df_numeric], axis=1)
 ### Build the model
 
 ```python
-
 #The columns that we will be making predictions with.
 X = df_modified[['potential', 'preferred_foot_left', 'preferred_foot_right', 'crossing', 'finishing',
        'heading_accuracy', 'short_passing', 'volleys', 'dribbling', 'curve',
@@ -156,13 +137,11 @@ X = df_modified[['potential', 'preferred_foot_left', 'preferred_foot_right', 'cr
        
 #The column that we want to predict.
 y = df_modified["overall_rating"]
-
 ```
 
 ### Linear Regression
 
 ```python
-
 #Evaluate the model by splitting into train and test sets.
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
@@ -173,7 +152,6 @@ predicted = model.predict(X_test)
 predicted
 print ("Test Accuracy:", round(metrics.r2_score(y_test, predicted) * 100, 2), '%')
 print ("Mean Squared Error:", metrics.mean_squared_error(y_test, predicted))
-
 ```
 
 Test Accuracy: 79.29 %
@@ -196,20 +174,19 @@ Accuracy still at 79%.
 PLOT true vs predicted scores and draw the line of fit
 
 ```python
-
 pltplt..scatterscatter((y_testy_test,,  predictedpredicte )
 plt.plot([0, 1], [0, 1], '--k')
 plt.xlabel("True overall score")
 plt.ylabel("Predicted overall score")
 plt.title("True vs Predicted overall score")
 plt.show()
-
 ```
+
+![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/true-vs-predicted-scores.png?raw=true)
 
 Draw residual plot. If the data points are scattered randomly around the line, then our model is correct and it's not missing the relationship between any two features.
 
 ```python
-
 plt.figure(figsize=(9,6))
 plt.scatter(model.predict(X_train), model.predict(X_train) - y_train, c='b', s=40, alpha=0.5)
 plt.scatter(model.predict(X_test), model.predict(X_test) - y_test, c='g', s=40, alpha=0.5)
@@ -217,5 +194,6 @@ plt.hlines(y=0, xmin=0, xmax=1)
 plt.ylabel('Residuals')
 plt.title('Residual plot including training(blue) and test(green) data')
 plt.show()
-
 ```
+
+![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/residual%20plot.png?raw=true)
