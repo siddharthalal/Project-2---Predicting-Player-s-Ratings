@@ -1,7 +1,5 @@
 # Predicting Player Ratings Using Regression in Python
 
----
-
 In this project, we are going to predict the overall rating of soccer player based on their attributes such as 'crossing', 'finishing etc.
 
 The dataset that we are going to use is from the European Soccer Database (https://www.kaggle.com/hugomathien/soccer). 
