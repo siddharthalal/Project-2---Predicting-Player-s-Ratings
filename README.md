@@ -328,7 +328,7 @@ feature_importances = sorted(feature_importances, key = lambda x: x[1], reverse 
 [print('Variable: {:20} Importance: {}'.format(*pair)) for pair in feature_importances];
 ```
 
-![variable importance](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/variable importance.png?raw=true)
+![variable importance](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/variable-importance.png?raw=true)
 
 Highly correlated feature pairs are reduced to single features as we intended. We can try removing those variables that have no importance and see if the model performance suffers.
 
@@ -352,7 +352,7 @@ Test Accuracy: 96.0 %
 
 Mean Squared Error: 0.04031
 
-The accuracy has decreased and MSE has increased only maginally. If we were to continue using this model, we could only collect the important variables and achieve nearly the same performance.
+The accuracy has decreased and the MSE has increased only maginally. If we were to continue using this model, we could only collect the important variables and achieve nearly the same performance.
 
 Let's run the linear model on important features only and see if its performance improves.
 
