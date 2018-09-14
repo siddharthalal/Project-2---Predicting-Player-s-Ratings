@@ -25,7 +25,7 @@ from matplotlib import pyplot as plt
 %matplotlib inline
 ```
 
-Load the .sqlite file into a Pandas data frame.
+Load the .sqlite file into a pandas data frame.
 
 ```python
 cnx = sqlite3.connect('players-database.sqlite')
@@ -45,7 +45,7 @@ df.drop(['id', 'player_fifa_api_id', 'player_api_id', 'date'], axis=1, inplace=T
 df.isnull().any()
 ```
 
-![dataframe](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/columns-with-nan-values.png?raw=true)
+![featues with null values](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/columns-with-nan-values.png?raw=true)
 
 836 records which have "overall_rating" as null have null values in all the columns. We can safely drop them.
 
@@ -68,7 +68,7 @@ Clean up values in defensive_work_rate and attacking_work_rate columns
 df.defensive_work_rate.value_counts()
 ```
 
-![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/defensive-work-rate-value-counts-1.png?raw=true)
+![defensive-work-rate-value-counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/defensive-work-rate-value-counts-1.png?raw=true)
 
 Converting defensive_work_rate is tricky. The acceptable values are high, medium and low, but the column has lot of other values which don't make sense. And since we don't have the metadata available for the column, the safest choice would be to drop all the rows having non-sensical values. But before we do that, lets try to make sense of the given data.
 
@@ -96,7 +96,7 @@ df = df[(df.defensive_work_rate == 'medium') | (df.defensive_work_rate == 'high'
 df.defensive_work_rate.value_counts()
 ```
 
-![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/defensive-work-rate-value-counts-2.png?raw=true)
+![defensive-work-rate-value-counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/defensive-work-rate-value-counts-2.png?raw=true)
 
 attacking_work_rate
 
@@ -104,7 +104,7 @@ attacking_work_rate
 df.attacking_work_rate.value_counts()
 ```
 
-![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/attacking-work-rate-value-counts.png?raw=true)
+![attacking-work-rate-value-counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/attacking-work-rate-value-counts.png?raw=true)
 
 Converting attacking_work_rate is again tricky. The acceptable values are high, medium and low, but the column has other values which don't make much sense. And since we don't have the metadata available for this column, the safest choice would be to drop all the rows having values other than low, high and medium.
 
@@ -114,7 +114,7 @@ df['attacking_work_rate'] = df['attacking_work_rate'].str.replace('norm','medium
 df = df[(df.attacking_work_rate == 'medium') | (df.attacking_work_rate == 'high') | (df.attacking_work_rate == 'low')]
 ```
 
-Since we know the particular order of values in the "attacking_work_rate" & "defensive_work_rate" features, we can numerically encode them as 0 for "low", 1 for "medium" and 2 for "high".
+Since we know the particular order of values in the "attacking_work_rate" & "defensive_work_rate" features, we can encode them as 0 for "low", 1 for "medium" and 2 for "high".
 
 ```python
 df['attacking_work_rate'] = df['attacking_work_rate'].map({'low': 0, 'medium': 1, 'high': 2}).astype(int)
@@ -142,7 +142,7 @@ plt.subplots_adjust(hspace=0.9, wspace=0.3)
 
 ![features-target-correlation](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/features-target-correlation.png?raw=true)
 
-The "overall rating" feature doesn't seem to be linearlly correlated to all the other features except for a few like "potential". Running a linear regression model on non-linear data wouldn't give us the best results. We will test this. Let's see how the features are correlated to each other.
+The "overall rating" feature doesn't seem to be linearly correlated to the other features except for a few like "potential". Running a linear regression model on non-linear data wouldn't give us the best results. We will test this. Let's see how the features are correlated to each other.
 
 ```python
 fig = plt.figure(figsize=(12,9))
@@ -150,7 +150,13 @@ sns.heatmap(df.corr(), square=True)
 plt.show()
 ```
 
-![features-target-correlation](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/features-correlation-heatmap.png?raw=true)
+![features-correlation-heatmap](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/features-correlation-heatmap.png?raw=true)
+
+There is a strong correlation between various features which means we also have a problem of data redundancy.
+
+We can remove highly correlated predictors from the model using Random Forest regression technique. Because they supply redundant information, removing one of the correlated factors usually doesn't drastically reduce the R-squared.
+
+Based on initial data analysis, random forest regression seems a better technique that linear regression in this case. Let's evaluate both of them.
 
 ### Build the model
 
@@ -251,9 +257,9 @@ Test Accuracy: 79.2 %
 
 Mean Squared Error: 0.20952
 
-![features-target-correlation](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/correlation-plot.png?raw=true)
+![coefficients-plot](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/coefficients-plot.png?raw=true)
 
-We have brough down the MSE from 10 to 0.2 by scaling the features. All features seem to affect the co-efficient equally.
+We have brough down the MSE from 10 to 0.2 by scaling the features. Accuracy is still at 79%. All features seem to affect the co-efficient equally.
 
 PLOT true vs predicted scores and draw the line of fit
 
@@ -266,4 +272,105 @@ plt.title("True vs Predicted overall score")
 plt.show()
 ```
 
-![defensive rate value counts](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/true-vs-predicted-scores.png?raw=true)
+![true-vs-predicted-scores](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/true-vs-predicted-scores.png?raw=true)
+
+### Random Forest Regression
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+# Scale the features
+X_scaler = StandardScaler()
+X_train = pd.DataFrame(X_scaler.fit_transform(X_train), columns=X_train.columns)
+X_test = pd.DataFrame(X_scaler.fit_transform(X_test), columns=X_test.columns)
+
+y_scaler = StandardScaler()
+y_train = y_scaler.fit_transform(y_train[:, None])[:, 0]
+y_test = y_scaler.transform(y_test[:, None])[:, 0]
+
+rfmodel = RandomForestRegressor(n_jobs=-1)
+rfmodel.fit(X_train, y_train)
+
+predicted = rfmodel.predict(X_test)
+print ("Test Accuracy:", round(metrics.r2_score(y_test, predicted) * 100, 2), '%')
+print ("Mean Squared Error:", round(metrics.mean_squared_error(y_test, predicted),5))
+```
+
+Test Accuracy: 97.2%
+
+Mean Squared Error: 0.02819
+
+Accuracy is significantly higher and MSE is significantly lower than the linear model. We can always tune the model further by optimizing the hyper-parameters using GridSearch or RandomizedSearch cross validation methods. 
+
+### Variable Importances
+In order to quantify the usefulness of all the variables in the entire random forest, we can look at the relative importances of the variables. The importances returned in Skicit-learn represent how much including a particular variable improves the prediction.
+
+```python
+# Get numerical feature importances
+importances = list(rfmodel.feature_importances_)
+
+feat_labels = ['potential', 'preferred_foot', 'crossing', 'finishing',
+       'heading_accuracy', 'short_passing', 'volleys', 'dribbling', 'curve',
+       'free_kick_accuracy', 'long_passing', 'ball_control', 'acceleration',
+       'sprint_speed', 'agility', 'reactions', 'balance', 'shot_power',
+       'jumping', 'stamina', 'strength', 'long_shots', 'aggression',
+       'interceptions', 'positioning', 'vision', 'penalties', 'marking',
+       'standing_tackle', 'sliding_tackle',
+       'attacking_work_rate', 'defensive_work_rate']
+
+# List of tuples with variable and importance
+feature_importances = [(feature, round(importance, 2)) for feature, importance in zip(feat_labels, importances)]
+
+# Sort the feature importances by most important first
+feature_importances = sorted(feature_importances, key = lambda x: x[1], reverse = True)
+
+# Print out the feature and importances 
+[print('Variable: {:20} Importance: {}'.format(*pair)) for pair in feature_importances];
+```
+
+![variable importance](https://github.com/siddharthalal/Project-2---Predicting-Player-s-Ratings/blob/master/variable importance.png?raw=true)
+
+Highly correlated feature pairs are reduced to single features as we intended. We can try removing those variables that have no importance and see if the model performance suffers.
+
+```python
+from sklearn.feature_selection import SelectFromModel
+
+sfm = SelectFromModel(rfmodel, threshold=0.01)
+sfm.fit(X_train, y_train)
+
+X_important_train = sfm.transform(X_train)
+X_important_test = sfm.transform(X_test)
+
+rfmodel.fit(X_important_train, y_train)
+predicted = rfmodel.predict(X_important_test)
+
+print ("Test Accuracy:", round(metrics.r2_score(y_test, predicted) * 100, 2), '%')
+print ("Mean Squared Error:", round(metrics.mean_squared_error(y_test, predicted),5))
+```
+
+Test Accuracy: 96.0 %
+
+Mean Squared Error: 0.04031
+
+The accuracy has decreased and MSE has increased only maginally. If we were to continue using this model, we could only collect the important variables and achieve nearly the same performance.
+
+Let's run the linear model on important features only and see if its performance improves.
+
+```python
+X_important_train = sfm.transform(X_train)
+X_important_test = sfm.transform(X_test)
+
+lm.fit(X_important_train, y_train)
+predicted = lm.predict(X_important_test)
+
+print ("Test Accuracy:", round(metrics.r2_score(y_test, predicted) * 100, 2), '%')
+print ("Mean Squared Error:", round(metrics.mean_squared_error(y_test, predicted),5))
+```
+
+Test Accuracy: 77.67 %
+
+Mean Squared Error: 0.22501
+
+There's not much improvement in accuracy in linear regression (as predicted by the data exploration above), owing to the non-linear relationship between the features and the target column.
+
+In conclusion, by using random forest regression on the dataset, we achieved a prediction accuracy of 96% and we were also able to reduce the feature dimensions.
